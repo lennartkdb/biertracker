@@ -37,12 +37,12 @@
     <div id="stats"></div>
   </div>
 
-  <!-- Firebase SDK einbinden -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-
-  <script>
+  <!-- Firebase SDK als Module einbinden -->
+  <script type="module">
     // Firebase-Konfiguration
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getDatabase, ref, get, set, remove, child } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyCpKhEF4q4hoAfieifH8rS0fLwtl5Pqh0M",
       authDomain: "biertracker-d347e.firebaseapp.com",
@@ -55,8 +55,8 @@
     };
 
     // Firebase initialisieren
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.database(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
 
     // Cola-Daten hinzufügen
     function addDrink() {
@@ -69,13 +69,13 @@
       }
 
       // Verweis auf die Firebase-Datenbank für den Benutzer
-      const userRef = db.ref('users/' + user);
+      const userRef = ref(db, 'users/' + user);
 
       // Den aktuellen Wert des Benutzers abrufen, um die Cola-Menge hinzuzufügen
-      userRef.get().then((snapshot) => {
+      get(userRef).then((snapshot) => {
         let total = snapshot.exists() ? snapshot.val() : 0;
         total += amount;
-        userRef.set(total);  // Speichert die neue Cola-Menge für den Benutzer
+        set(userRef, total);  // Speichert die neue Cola-Menge für den Benutzer
 
         updateStats();  // Zeigt die neuen Statistiken an
       });
@@ -86,21 +86,23 @@
       const statsDiv = document.getElementById("stats");
       statsDiv.innerHTML = "<h2>Trinkstatistik</h2>";
 
-      const usersRef = db.ref('users');  // Verweis auf alle Benutzer
+      const usersRef = ref(db, 'users');  // Verweis auf alle Benutzer
 
       // Holt die Werte für alle Benutzer aus der Firebase-Datenbank
-      usersRef.once('value', (snapshot) => {
-        snapshot.forEach((userSnapshot) => {
-          let user = userSnapshot.key;
-          let total = (userSnapshot.val() / 1000).toFixed(2);  // Cola-Werte in Liter umwandeln
-          statsDiv.innerHTML += `<p><strong>${user}</strong>: ${total} L</p>`;
-        });
+      get(usersRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          snapshot.forEach((userSnapshot) => {
+            let user = userSnapshot.key;
+            let total = (userSnapshot.val() / 1000).toFixed(2);  // Cola-Werte in Liter umwandeln
+            statsDiv.innerHTML += `<p><strong>${user}</strong>: ${total} L</p>`;
+          });
+        }
       });
     }
 
     // Daten zurücksetzen
     function resetData() {
-      db.ref('users').remove();  // Löscht alle Daten in der „users“-Datenbank
+      remove(ref(db, 'users'));  // Löscht alle Daten in der „users“-Datenbank
       updateStats();  // Aktualisiert die Statistiken
     }
 
