@@ -1,70 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    <title>Bier-Tracker</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .container { max-width: 400px; margin: auto; }
-        select, button { margin: 10px; padding: 5px; }
-    </style>
-    <script>
-        function addDrink() {
-            let user = document.getElementById("user").value;
-            let amount = parseFloat(document.getElementById("amount").value);
-            
-            if (!user) {
-                alert("Bitte wähle einen Namen!");
-                return;
-            }
-            
-            let total = localStorage.getItem(user) ? parseFloat(localStorage.getItem(user)) : 0;
-            total += amount;
-            localStorage.setItem(user, total);
-            updateStats();
-        }
-        
-        function updateStats() {
-            let statsDiv = document.getElementById("stats");
-            statsDiv.innerHTML = "<h2>Trinkstatistik</h2>";
-            for (let i = 0; i < localStorage.length; i++) {
-                let user = localStorage.key(i);
-                let total = (parseFloat(localStorage.getItem(user)) / 1000).toFixed(2);
-                statsDiv.innerHTML += `<p><strong>${user}</strong>: ${total} L</p>`;
-            }
-        }
-        
-        function resetData() {
-            localStorage.clear();
-            updateStats();
-        }
-        
-        window.onload = updateStats;
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biertracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; }
+    .container { max-width: 400px; margin: auto; }
+    select, button { margin: 10px; padding: 5px; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Cola Tracker</h1>
-        <label for="user">Wähle deinen Namen:</label>
-        <select id="user">
-            <option value="">-- Wähle --</option>
-            <option value="Tristan">Tristan</option>
-            <option value="Kalle">Kalle</option>
-        </select>
-        <br>
-        <label for="amount">Wähle die Menge:</label>
-        <select id="amount">
-            <option value="200">0,2 L</option>
-            <option value="330">0,33 L</option>
-            <option value="400">0,4 L</option>
-            <option value="500">0,5 L</option>
-        </select>
-        <br>
-        <button onclick="addDrink()">Hinzufügen</button>
-        <button onclick="resetData()">Reset</button>
-        <div id="stats"></div>
-    </div>
+  <div class="container">
+    <h1>Biertracker</h1>
+
+    <label for="user">Wähle deinen Namen:</label>
+    <select id="user">
+      <option value="">-- Wähle --</option>
+      <option value="Tristan">Tristan</option>
+      <option value="Kalle">Kalle</option>
+    </select>
+    <br>
+
+    <label for="amount">Wähle die Menge:</label>
+    <select id="amount">
+      <option value="200">0,2 L</option>
+      <option value="330">0,33 L</option>
+      <option value="400">0,4 L</option>
+      <option value="500">0,5 L</option>
+    </select>
+    <br>
+
+    <button onclick="addDrink()">Hinzufügen</button>
+    <button onclick="resetData()">Reset</button>
+
+    <div id="stats"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+
+  <script>
+    // Firebase Konfiguration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCpKhEF4q4hoAfieifH8rS0fLwtl5Pqh0M",
+      authDomain: "biertracker-d347e.firebaseapp.com",
+      projectId: "biertracker-d347e",
+      storageBucket: "biertracker-d347e.firebasestorage.app",
+      messagingSenderId: "350927471643",
+      appId: "1:350927471643:web:6f6a9d527b1b4b02c424be",
+      measurementId: "G-L4FXEYFXWF"
+    };
+
+    // Firebase initialisieren
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.database(app);
+
+    // Funktion um Cola-Daten hinzuzufügen
+    function addDrink() {
+      let user = document.getElementById("user").value;
+      let amount = parseFloat(document.getElementById("amount").value);
+
+      if (!user) {
+        alert("Bitte wähle einen Namen!");
+        return;
+      }
+
+      // Verweis auf die Firebase-Datenbank für den Benutzer
+      const userRef = db.ref('users/' + user);
+
+      // Den aktuellen Wert des Benutzers abrufen, um die Cola-Menge hinzuzufügen
+      userRef.get().then((snapshot) => {
+        let total = snapshot.exists() ? snapshot.val() : 0;
+        total += amount;
+        userRef.set(total);  // Speichert die neue Cola-Menge für den Benutzer
+
+        updateStats();  // Zeigt die neuen Statistiken an
+      });
+    }
+
+    // Funktion zum Anzeigen der Cola-Statistiken
+    function updateStats() {
+      const statsDiv = document.getElementById("stats");
+      statsDiv.innerHTML = "<h2>Trinkstatistik</h2>";
+
+      const usersRef = db.ref('users');  // Verweis auf alle Benutzer
+
+      // Holt die Werte für alle Benutzer aus der Firebase-Datenbank
+      usersRef.once('value', (snapshot) => {
+        snapshot.forEach((userSnapshot) => {
+          let user = userSnapshot.key;
+          let total = (userSnapshot.val() / 1000).toFixed(2);  // Cola-Werte in Liter umwandeln
+          statsDiv.innerHTML += `<p><strong>${user}</strong>: ${total} L</p>`;
+        });
+      });
+    }
+
+    // Funktion zum Zurücksetzen der Daten
+    function resetData() {
+      db.ref('users').remove();  // Löscht alle Daten in der „users“-Datenbank
+      updateStats();  // Aktualisiert die Statistiken
+    }
+
+    window.onload = updateStats;  // Beim Laden der Seite werden die Statistiken angezeigt
+  </script>
 </body>
 </html>
-
