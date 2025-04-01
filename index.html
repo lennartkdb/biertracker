@@ -37,12 +37,12 @@
     <div id="stats"></div>
   </div>
 
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK einbinden -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
   <script>
-    // Firebase Konfiguration
+    // Firebase-Konfiguration
     const firebaseConfig = {
       apiKey: "AIzaSyCpKhEF4q4hoAfieifH8rS0fLwtl5Pqh0M",
       authDomain: "biertracker-d347e.firebaseapp.com",
@@ -50,14 +50,15 @@
       storageBucket: "biertracker-d347e.firebasestorage.app",
       messagingSenderId: "350927471643",
       appId: "1:350927471643:web:6f6a9d527b1b4b02c424be",
-      measurementId: "G-L4FXEYFXWF"
+      measurementId: "G-L4FXEYFXWF",
+      databaseURL: "https://biertracker-d347e-default-rtdb.europe-west1.firebasedatabase.app"  // Deine Firebase Realtime Database URL
     };
 
     // Firebase initialisieren
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.database(app);
 
-    // Funktion um Cola-Daten hinzuzufügen
+    // Cola-Daten hinzufügen
     function addDrink() {
       let user = document.getElementById("user").value;
       let amount = parseFloat(document.getElementById("amount").value);
@@ -80,7 +81,7 @@
       });
     }
 
-    // Funktion zum Anzeigen der Cola-Statistiken
+    // Cola-Statistiken anzeigen
     function updateStats() {
       const statsDiv = document.getElementById("stats");
       statsDiv.innerHTML = "<h2>Trinkstatistik</h2>";
@@ -97,7 +98,7 @@
       });
     }
 
-    // Funktion zum Zurücksetzen der Daten
+    // Daten zurücksetzen
     function resetData() {
       db.ref('users').remove();  // Löscht alle Daten in der „users“-Datenbank
       updateStats();  // Aktualisiert die Statistiken
