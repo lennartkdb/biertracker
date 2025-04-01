@@ -3,121 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Biertracker</title>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; }
-    .container { max-width: 400px; margin: auto; }
-    select, button { margin: 10px; padding: 5px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Biertracker</h1>
+  <title>Bier-Tracker</title>
 
-    <label for="user">Wähle deinen Namen:</label>
-    <select id="user">
-      <option value="">-- Wähle --</option>
-      <option value="Tristan">Tristan</option>
-      <option value="Kalle">Kalle</option>
-    </select>
-    <br>
-
-    <label for="amount">Wähle die Menge:</label>
-    <select id="amount">
-      <option value="200">0,2 L</option>
-      <option value="330">0,33 L</option>
-      <option value="400">0,4 L</option>
-      <option value="500">0,5 L</option>
-    </select>
-    <br>
-
-    <button onclick="addDrink()">Hinzufügen</button>
-    <button onclick="resetData()">Reset</button>
-
-    <div id="stats"></div>
-  </div>
-
-  <!-- Firebase SDK als Module einbinden -->
+  <!-- Firebase SDK (Modularer Ansatz) -->
   <script type="module">
-    // Firebase-Konfiguration
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getDatabase, ref, get, set, remove, child } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
+    // Firebase SDKs importieren
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/app.js";
+    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/9.1.0/database.js";
 
+    // Deine Firebase-Konfiguration
     const firebaseConfig = {
       apiKey: "AIzaSyCpKhEF4q4hoAfieifH8rS0fLwtl5Pqh0M",
       authDomain: "biertracker-d347e.firebaseapp.com",
+      databaseURL: "https://biertracker-d347e-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "biertracker-d347e",
       storageBucket: "biertracker-d347e.firebasestorage.app",
       messagingSenderId: "350927471643",
       appId: "1:350927471643:web:6f6a9d527b1b4b02c424be",
-      measurementId: "G-L4FXEYFXWF",
-      databaseURL: "https://biertracker-d347e-default-rtdb.europe-west1.firebasedatabase.app"
+      measurementId: "G-L4FXEYFXWF"
     };
 
     // Firebase initialisieren
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Cola-Daten hinzufügen
-    function addDrink() {
-      let user = document.getElementById("user").value;
-      let amount = parseFloat(document.getElementById("amount").value);
+    // Funktion zum Hinzufügen eines Getränks
+    function addDrink(user, amount) {
+      const userRef = ref(db, 'users/' + user);  // Verweis auf den Benutzer in der DB
 
-      console.log("User: " + user);
-      console.log("Amount: " + amount);
-
-      if (!user) {
-        alert("Bitte wähle einen Namen!");
-        return;
-      }
-
-      // Verweis auf die Firebase-Datenbank für den Benutzer
-      const userRef = ref(db, 'users/' + user);
-
-      // Den aktuellen Wert des Benutzers abrufen, um die Cola-Menge hinzuzufügen
       get(userRef).then((snapshot) => {
-        let total = snapshot.exists() ? snapshot.val() : 0;
-        console.log("Aktueller Wert des Benutzers: " + total);
-        total += amount;
-        console.log("Neuer Wert des Benutzers: " + total);
-        set(userRef, total);  // Speichert die neue Cola-Menge für den Benutzer
-
-        updateStats();  // Zeigt die neuen Statistiken an
+        let total = snapshot.exists() ? snapshot.val() : 0;  // Wenn der Benutzer existiert, den aktuellen Wert abrufen
+        total += amount;  // Cola-Menge hinzufügen
+        set(userRef, total); // Den neuen Wert speichern
+        console.log(`Neuer Wert für ${user}: ${total} ml`);
       }).catch((error) => {
-        console.error("Fehler beim Abrufen der Daten:", error);
+        console.error("Fehler beim Hinzufügen des Getränks:", error);
       });
     }
 
-    // Cola-Statistiken anzeigen
+    // Funktion zum Abrufen und Anzeigen der Benutzerstatistiken
     function updateStats() {
-      const statsDiv = document.getElementById("stats");
-      statsDiv.innerHTML = "<h2>Trinkstatistik</h2>";
+      const statsDiv = document.getElementById('stats');
+      const usersRef = ref(db, 'users');  // Verweis auf den Knoten "users"
 
-      const usersRef = ref(db, 'users');  // Verweis auf alle Benutzer
-
-      // Holt die Werte für alle Benutzer aus der Firebase-Datenbank
       get(usersRef).then((snapshot) => {
         if (snapshot.exists()) {
+          statsDiv.innerHTML = '';  // Leeren der Anzeige vor dem neuen Abrufen
           snapshot.forEach((userSnapshot) => {
             let user = userSnapshot.key;
-            let total = (userSnapshot.val() / 1000).toFixed(2);  // Cola-Werte in Liter umwandeln
+            let total = (userSnapshot.val() / 1000).toFixed(2);  // Cola-Menge in Liter umwandeln
             statsDiv.innerHTML += `<p><strong>${user}</strong>: ${total} L</p>`;
           });
         } else {
-          statsDiv.innerHTML += "<p>Keine Daten verfügbar.</p>";
+          statsDiv.innerHTML = "<p>Keine Benutzerdaten gefunden.</p>";
         }
       }).catch((error) => {
-        console.error("Fehler beim Abrufen der Daten:", error);
+        console.error("Fehler beim Abrufen der Benutzerdaten:", error);
       });
     }
 
-    // Daten zurücksetzen
-    function resetData() {
-      remove(ref(db, 'users'));  // Löscht alle Daten in der „users“-Datenbank
-      updateStats();  // Aktualisiert die Statistiken
-    }
+    // Eventlistener für das Formular zum Hinzufügen von Getränken
+    document.getElementById('drinkForm').addEventListener('submit', function(event) {
+      event.preventDefault();  // Verhindert das Neuladen der Seite
+      const user = document.getElementById('user').value;
+      const amount = parseInt(document.getElementById('amount').value);  // Menge in ml
 
-    window.onload = updateStats;  // Beim Laden der Seite werden die Statistiken angezeigt
+      // Cola-Menge für den Benutzer hinzufügen
+      if (!isNaN(amount) && user.trim() !== '') {
+        addDrink(user, amount);
+        updateStats();  // Statistiken aktualisieren
+      }
+    });
+
+    // Beim Laden der Seite die aktuellen Statistiken anzeigen
+    window.onload = function() {
+      updateStats();
+    };
   </script>
+</head>
+<body>
+  <h1>Cola Zähler</h1>
+
+  <form id="drinkForm">
+    <label for="user">Benutzername:</label>
+    <input type="text" id="user" name="user" required>
+    <br><br>
+
+    <label for="amount">Menge (in ml):</label>
+    <input type="number" id="amount" name="amount" required>
+    <br><br>
+
+    <button type="submit">Cola hinzufügen</button>
+  </form>
+
+  <h2>Benutzerdaten</h2>
+  <div id="stats">
+    <!-- Hier werden die Benutzerdaten angezeigt -->
+  </div>
 </body>
 </html>
