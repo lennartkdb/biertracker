@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Impostor Spiel</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .hidden { display: none; }
+    .player-block { border: 1px solid #ccc; padding: 10px; margin: 5px; cursor: pointer; border-radius: 8px; }
+    .revealed { background-color: #e0ffe0; }
+    #playerList div { display: inline-block; width: 150px; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Impostor Spiel</h1>
+
+  <div id="step1">
+    <h2>1. Wörter hinzufügen</h2>
+    <input type="text" id="wordInput" placeholder="Wort eingeben" />
+    <button onclick="addWord()">Hinzufügen</button>
+    <ul id="wordList"></ul>
+    <button onclick="goToStep2()">Weiter zu Mitspielern</button>
+  </div>
+
+  <div id="step2" class="hidden">
+    <h2>2. Mitspieler eintragen</h2>
+    <input type="text" id="playerInput" placeholder="Name eingeben" />
+    <button onclick="addPlayer()">Hinzufügen</button>
+    <ul id="playerListNames"></ul>
+    <button onclick="goToStep3()">Weiter zur Spielauswahl</button>
+  </div>
+
+  <div id="step3" class="hidden">
+    <h2>3. Rollen anzeigen</h2>
+    <div id="playerList"></div>
+    <button onclick="confirmRoles()">Bestätigen & Spieler wählen</button>
+    <div id="starter" class="hidden"></div>
+  </div>
+
+  <script>
+    let words = [];
+    let players = [];
+    let shownRoles = {};
+    let impostor = null;
+
+    function addWord() {
+      const wordInput = document.getElementById('wordInput');
+      const word = wordInput.value.trim();
+      if (word) {
+        words.push(word);
+        const li = document.createElement('li');
+        li.textContent = word;
+        document.getElementById('wordList').appendChild(li);
+        wordInput.value = '';
+      }
+    }
+
+    function goToStep2() {
+      if (words.length === 0) return alert('Bitte mindestens ein Wort eingeben.');
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step2').classList.remove('hidden');
+    }
+
+    function addPlayer() {
+      const playerInput = document.getElementById('playerInput');
+      const name = playerInput.value.trim();
+      if (name) {
+        players.push(name);
+        const li = document.createElement('li');
+        li.textContent = name;
+        document.getElementById('playerListNames').appendChild(li);
+        playerInput.value = '';
+      }
+    }
+
+    function goToStep3() {
+      if (players.length < 2) return alert('Bitte mindestens zwei Mitspieler eintragen.');
+
+      impostor = players[Math.floor(Math.random() * players.length)];
+
+      document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step3').classList.remove('hidden');
+
+      const playerList = document.getElementById('playerList');
+      playerList.innerHTML = '';
+
+      players.forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'player-block';
+        div.textContent = name;
+        div.onclick = () => {
+          if (!shownRoles[name]) {
+            shownRoles[name] = true;
+            const originalText = div.textContent;
+            div.classList.add('revealed');
+            if (name === impostor) {
+              div.innerHTML = `<strong>${name}</strong><br><em>Impostor</em>`;
+            } else {
+              const word = words[Math.floor(Math.random() * words.length)];
+              div.innerHTML = `<strong>${name}</strong><br>${word}`;
+            }
+            setTimeout(() => {
+              div.textContent = name;
+              div.classList.remove('revealed');
+            }, 3000); // 3 Sekunden sichtbar
+          }
+        };
+        playerList.appendChild(div);
+      });
+    }
+
+    function confirmRoles() {
+      if (Object.keys(shownRoles).length < players.length)
+        return alert('Bitte erst alle Rollen anzeigen.');
+
+      const randomStarter = players[Math.floor(Math.random() * players.length)];
+      const starterDiv = document.getElementById('starter');
+      starterDiv.textContent = `Der zufällige Startspieler ist: ${randomStarter}`;
+      starterDiv.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
